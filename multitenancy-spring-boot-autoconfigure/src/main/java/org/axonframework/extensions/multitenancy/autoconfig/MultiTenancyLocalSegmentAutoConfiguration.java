@@ -82,11 +82,11 @@ public class MultiTenancyLocalSegmentAutoConfiguration {
         );
         List<TenantDescriptor> tenants =
                 Arrays.stream(configuredTenants.split(","))
-                      .map(String::trim)
-                      .filter(tenantId -> !tenantId.isEmpty())
-                      .map(TenantDescriptor::tenantWithId)
-                      .filter(tenantConnectPredicate)
-                      .collect(Collectors.toList());
+                        .map(String::trim)
+                        .filter(tenantId -> !tenantId.isEmpty())
+                        .map(TenantDescriptor::tenantWithId)
+                        .filter(tenantConnectPredicate)
+                        .collect(Collectors.toList());
         return new StaticTenantProvider(tenants);
     }
 
@@ -100,13 +100,13 @@ public class MultiTenancyLocalSegmentAutoConfiguration {
         return tenant -> {
             SimpleCommandBus commandBus =
                     SimpleCommandBus.builder()
-                                    .transactionManager(new TenantWrappedTransactionManager(transactionManager, tenant))
-                                    .duplicateCommandHandlerResolver(duplicateCommandHandlerResolver)
-                                    .spanFactory(axonConfiguration.getComponent(CommandBusSpanFactory.class))
-                                    .messageMonitor(axonConfiguration.messageMonitor(
-                                            CommandBus.class, "commandBus@" + tenant.tenantId()
-                                    ))
-                                    .build();
+                            .transactionManager(new TenantWrappedTransactionManager(transactionManager, tenant))
+                            .duplicateCommandHandlerResolver(duplicateCommandHandlerResolver)
+                            .spanFactory(axonConfiguration.getComponent(CommandBusSpanFactory.class))
+                            .messageMonitor(axonConfiguration.messageMonitor(
+                                    CommandBus.class, "commandBus@" + tenant.tenantId()
+                            ))
+                            .build();
             commandBus.registerHandlerInterceptor(
                     new CorrelationDataInterceptor<>(axonConfiguration.correlationDataProviders())
             );
@@ -121,14 +121,14 @@ public class MultiTenancyLocalSegmentAutoConfiguration {
     ) {
         return tenant ->
                 SimpleQueryUpdateEmitter.builder()
-                                        .updateMessageMonitor(axonConfiguration.messageMonitor(
-                                                QueryUpdateEmitter.class,
-                                                "queryUpdateEmitter@" + tenant.tenantId()
-                                        ))
-                                        .spanFactory(axonConfiguration.getComponent(
-                                                QueryUpdateEmitterSpanFactory.class
-                                        ))
-                                        .build();
+                        .updateMessageMonitor(axonConfiguration.messageMonitor(
+                                QueryUpdateEmitter.class,
+                                "queryUpdateEmitter@" + tenant.tenantId()
+                        ))
+                        .spanFactory(axonConfiguration.getComponent(
+                                QueryUpdateEmitterSpanFactory.class
+                        ))
+                        .build();
     }
 
     @Bean
@@ -139,22 +139,22 @@ public class MultiTenancyLocalSegmentAutoConfiguration {
             @Qualifier("multiTenantQueryUpdateEmitter") QueryUpdateEmitter multiTenantQueryUpdateEmitter
     ) {
         return tenant -> SimpleQueryBus.builder()
-                                       .messageMonitor(axonConfiguration.messageMonitor(
-                                               QueryBus.class, "queryBus@" + tenant.tenantId()
-                                       ))
-                                       .transactionManager(new TenantWrappedTransactionManager(
-                                               transactionManager, tenant
-                                       ))
-                                       .spanFactory(axonConfiguration.getComponent(QueryBusSpanFactory.class))
-                                       .queryUpdateEmitter(
-                                               ((MultiTenantQueryUpdateEmitter) multiTenantQueryUpdateEmitter)
-                                                       .getTenant(tenant)
-                                       )
-                                       .errorHandler(axonConfiguration.getComponent(
-                                               QueryInvocationErrorHandler.class,
-                                               () -> LoggingQueryInvocationErrorHandler.builder().build()
-                                       ))
-                                       .build();
+                .messageMonitor(axonConfiguration.messageMonitor(
+                        QueryBus.class, "queryBus@" + tenant.tenantId()
+                ))
+                .transactionManager(new TenantWrappedTransactionManager(
+                        transactionManager, tenant
+                ))
+                .spanFactory(axonConfiguration.getComponent(QueryBusSpanFactory.class))
+                .queryUpdateEmitter(
+                        ((MultiTenantQueryUpdateEmitter) multiTenantQueryUpdateEmitter)
+                                .getTenant(tenant)
+                )
+                .errorHandler(axonConfiguration.getComponent(
+                        QueryInvocationErrorHandler.class,
+                        () -> LoggingQueryInvocationErrorHandler.builder().build()
+                ))
+                .build();
     }
 
     @Bean
@@ -164,11 +164,11 @@ public class MultiTenancyLocalSegmentAutoConfiguration {
                                                                Configuration axonConfiguration) {
         return tenant ->
                 EmbeddedEventStore.builder()
-                                  .storageEngine(storageEngine)
-                                  .messageMonitor(axonConfiguration.messageMonitor(
-                                          EventStore.class, "eventStore@" + tenant.tenantId()
-                                  ))
-                                  .spanFactory(axonConfiguration.getComponent(EventBusSpanFactory.class))
-                                  .build();
+                        .storageEngine(storageEngine)
+                        .messageMonitor(axonConfiguration.messageMonitor(
+                                EventStore.class, "eventStore@" + tenant.tenantId()
+                        ))
+                        .spanFactory(axonConfiguration.getComponent(EventBusSpanFactory.class))
+                        .build();
     }
 }

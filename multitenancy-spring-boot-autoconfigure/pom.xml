@@ -32,6 +32,8 @@
 
     <properties>
         <spring.web.version>5.3.39</spring.web.version>
+        <extensions-springcloud.version>4.13.0</extensions-springcloud.version>
+        <spring-cloud-commons.version>4.3.2</spring-cloud-commons.version>
         <assertj.core.version>3.27.7</assertj.core.version>
     </properties>
 
@@ -63,6 +65,12 @@
             <groupId>org.axonframework.extensions.multitenancy</groupId>
             <artifactId>axon-multitenancy</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.axonframework.extensions.springcloud</groupId>
+            <artifactId>axon-springcloud</artifactId>
+            <version>${extensions-springcloud.version}</version>
+            <optional>true</optional>
         </dependency>
         <!-- Spring -->
         <dependency>
@@ -100,6 +108,12 @@
             <artifactId>spring-jdbc</artifactId>
             <version>${spring.web.version}</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-commons</artifactId>
+            <version>${spring-cloud-commons.version}</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
