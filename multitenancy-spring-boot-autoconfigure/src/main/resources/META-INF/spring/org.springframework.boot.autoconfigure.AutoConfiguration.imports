@@ -1,2 +1,4 @@
+org.axonframework.extensions.multitenancy.autoconfig.MultiTenancyJpaEventStoreAutoConfiguration
+org.axonframework.extensions.multitenancy.autoconfig.MultiTenancyLocalSegmentAutoConfiguration
 org.axonframework.extensions.multitenancy.autoconfig.MultiTenancyAutoConfiguration
 org.axonframework.extensions.multitenancy.autoconfig.MultiTenancyAxonServerAutoConfiguration

@@ -18,9 +18,16 @@ package org.axonframework.extensions.multitenancy.autoconfig;
 
 import org.axonframework.axonserver.connector.event.axon.PersistentStreamMessageSource;
 import org.axonframework.axonserver.connector.event.axon.PersistentStreamMessageSourceFactory;
+import org.axonframework.common.jdbc.PersistenceExceptionResolver;
+import org.axonframework.common.jpa.EntityManagerProvider;
+import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore;
+import org.axonframework.eventsourcing.eventstore.EventStorageEngine;
+import org.axonframework.eventsourcing.eventstore.EventStore;
+import org.axonframework.eventsourcing.eventstore.jpa.JpaEventStorageEngine;
 import org.axonframework.extensions.multitenancy.components.TargetTenantResolver;
 import org.axonframework.extensions.multitenancy.components.TenantConnectPredicate;
 import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
+import org.axonframework.extensions.multitenancy.components.TenantProvider;
 import org.axonframework.extensions.multitenancy.components.commandhandeling.MultiTenantCommandBus;
 import org.axonframework.extensions.multitenancy.components.commandhandeling.TenantCommandSegmentFactory;
 import org.axonframework.extensions.multitenancy.components.deadletterqueue.MultiTenantDeadLetterQueueFactory;
@@ -36,7 +43,9 @@ import org.axonframework.messaging.correlation.CorrelationDataProvider;
 import org.axonframework.springboot.autoconfig.*;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -94,6 +103,102 @@ class MultiTenancyAutoConfigurationTest {
                                  .isInstanceOf(PersistentStreamMessageSourceFactory.class);
                          assertThat(context).getBean("tenantPersistentStreamMessageSourceFactory")
                                  .isInstanceOf(TenantPersistentStreamMessageSourceFactory.class);
+                     });
+    }
+
+    @Test
+    void multiTenancyAutoConfigurationWithoutAxonServer() {
+        contextRunner.withConfiguration(AutoConfigurations.of(MultiTenancyLocalSegmentAutoConfiguration.class))
+                     .withConfiguration(AutoConfigurations.of(MultiTenancyAutoConfiguration.class))
+                     .withBean(EventStorageEngine.class, () -> mock(EventStorageEngine.class))
+                     .withPropertyValues(
+                             "axon.axonserver.enabled=false",
+                             "axon.multi-tenancy.tenants=tenant-1,tenant-2"
+                     )
+                     .run(context -> {
+                         assertThat(context).getBean("tenantProvider")
+                                            .isExactlyInstanceOf(StaticTenantProvider.class);
+                         assertThat(context).getBean(TenantProvider.class)
+                                            .returns(2, tenantProvider -> tenantProvider.getTenants().size());
+                         assertThat(context).getBean("tenantCommandSegmentFactory")
+                                            .isInstanceOf(TenantCommandSegmentFactory.class);
+                         assertThat(context).getBean("tenantQuerySegmentFactory")
+                                            .isInstanceOf(TenantQuerySegmentFactory.class);
+                         assertThat(context).getBean("tenantEventSegmentFactory")
+                                            .isInstanceOf(TenantEventSegmentFactory.class);
+                         assertThat(context).getBean("multiTenantCommandBus")
+                                            .isExactlyInstanceOf(MultiTenantCommandBus.class);
+                         assertThat(context).getBean("multiTenantQueryBus")
+                                            .isExactlyInstanceOf(MultiTenantQueryBus.class);
+                         assertThat(context).getBean("multiTenantEventStore")
+                                            .isExactlyInstanceOf(MultiTenantEventStore.class);
+                         assertThat(context).doesNotHaveBean(AxonServerTenantProvider.class);
+                         assertThat(context).doesNotHaveBean(MultiTenantEventScheduler.class);
+                     });
+    }
+
+    @Test
+    void multiTenancyAutoConfigurationWithoutAxonServerUsesJpaEventStorageEngine() {
+        contextRunner.withConfiguration(AutoConfigurations.of(MultiTenancyJpaEventStoreAutoConfiguration.class))
+                     .withConfiguration(AutoConfigurations.of(MultiTenancyLocalSegmentAutoConfiguration.class))
+                     .withConfiguration(AutoConfigurations.of(MultiTenancyAutoConfiguration.class))
+                     .withBean(EntityManagerProvider.class, () -> mock(EntityManagerProvider.class))
+                     .withBean(PersistenceExceptionResolver.class, () -> mock(PersistenceExceptionResolver.class))
+                     .withPropertyValues(
+                             "axon.axonserver.enabled=false",
+                             "axon.multi-tenancy.tenants=tenant-1,tenant-2"
+                     )
+                     .run(context -> {
+                         assertThat(context).doesNotHaveBean(EventStorageEngine.class);
+                         assertThat(context).getBean("tenantJpaEventSegmentFactory")
+                                            .isInstanceOf(TenantEventSegmentFactory.class);
+
+                         TenantEventSegmentFactory factory = context.getBean(TenantEventSegmentFactory.class);
+                         EventStore tenantSegment = factory.apply(TenantDescriptor.tenantWithId("tenant-1"));
+
+                         assertThat(tenantSegment).isExactlyInstanceOf(EmbeddedEventStore.class);
+                         assertThat(ReflectionTestUtils.getField(tenantSegment, "storageEngine"))
+                                 .isExactlyInstanceOf(JpaEventStorageEngine.class);
+                         assertThat(context).getBean("multiTenantEventStore")
+                                            .isExactlyInstanceOf(MultiTenantEventStore.class);
+                     });
+    }
+
+    @Test
+    void multiTenancyAutoConfigurationWithoutAxonServerDoesNotRequireJakartaPersistence() {
+        contextRunner.withClassLoader(new FilteredClassLoader("jakarta.persistence"))
+                     .withConfiguration(AutoConfigurations.of(MultiTenancyJpaEventStoreAutoConfiguration.class))
+                     .withConfiguration(AutoConfigurations.of(MultiTenancyLocalSegmentAutoConfiguration.class))
+                     .withConfiguration(AutoConfigurations.of(MultiTenancyAutoConfiguration.class))
+                     .withPropertyValues(
+                             "axon.axonserver.enabled=false",
+                             "axon.multi-tenancy.tenants=tenant-1,tenant-2"
+                     )
+                     .run(context -> {
+                         assertThat(context).doesNotHaveBean("tenantJpaEventSegmentFactory");
+                         assertThat(context).doesNotHaveBean(TenantEventSegmentFactory.class);
+                         assertThat(context).doesNotHaveBean(MultiTenantEventStore.class);
+                     });
+    }
+
+    @Test
+    void multiTenancyAutoConfigurationWithoutAxonServerAndEventStorageEngine() {
+        contextRunner.withConfiguration(AutoConfigurations.of(MultiTenancyLocalSegmentAutoConfiguration.class))
+                     .withConfiguration(AutoConfigurations.of(MultiTenancyAutoConfiguration.class))
+                     .withPropertyValues(
+                             "axon.axonserver.enabled=false",
+                             "axon.multi-tenancy.tenants=tenant-1,tenant-2"
+                     )
+                     .run(context -> {
+                         assertThat(context).getBean("tenantProvider")
+                                            .isExactlyInstanceOf(StaticTenantProvider.class);
+                         assertThat(context).getBean("multiTenantCommandBus")
+                                            .isExactlyInstanceOf(MultiTenantCommandBus.class);
+                         assertThat(context).getBean("multiTenantQueryBus")
+                                            .isExactlyInstanceOf(MultiTenantQueryBus.class);
+                         assertThat(context).doesNotHaveBean(TenantEventSegmentFactory.class);
+                         assertThat(context).doesNotHaveBean(MultiTenantEventStore.class);
+                         assertThat(context).doesNotHaveBean(MultiTenantEventScheduler.class);
                      });
     }
 
@@ -165,5 +270,3 @@ class MultiTenancyAutoConfigurationTest {
                      });
     }
 }
-
-

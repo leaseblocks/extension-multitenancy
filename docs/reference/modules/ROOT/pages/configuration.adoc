@@ -5,7 +5,35 @@ Minimal configuration is needed to get extension up and running.
 
 == Static tenants configuration
 
-If you know list of contexts that you want your application to connect in advanced configure them coma separated in `application.properties` via following properties: `axon.axonserver.contexts=tenant-context-1,tenant-context-2,tenant-context-3`
+If you use Axon Server and know list of contexts that you want your application to connect in advanced configure them coma separated in `application.properties` via following properties: `axon.axonserver.contexts=tenant-context-1,tenant-context-2,tenant-context-3`
+
+If Axon Server is disabled, configure the static tenants through the multi-tenancy property instead:
+
+[source,properties]
+----
+axon.axonserver.enabled=false
+axon.multi-tenancy.tenants=tenant-1,tenant-2,tenant-3
+----
+
+In this mode the extension provides a static `TenantProvider` and local tenant segment factories for command bus, query bus, query update emitter, and the event store. If Jakarta JPA is available, the extension creates tenant-specific `EmbeddedEventStore` instances backed by `org.axonframework.eventsourcing.eventstore.jpa.JpaEventStorageEngine`. For other stores, it can use an available `EventStorageEngine` bean as a fallback.
+
+== Running without Axon Server
+
+To run without Axon Server, disable the Axon Server connector and provide the transports/storage you need:
+
+[source,properties]
+----
+axon.axonserver.enabled=false
+axon.multi-tenancy.tenants=tenant-1,tenant-2
+
+# Optional: AMQP event forwarding
+axon.amqp.exchange=axon-events
+
+# Optional: Spring Cloud command distribution
+axon.distributed.enabled=true
+----
+
+AMQP is an event transport and does not replace the event store. Event-sourced applications still need event storage. With Jakarta JPA, this extension creates tenant-specific `JpaEventStorageEngine` instances using Axon's same JPA event-store configuration inputs. Spring Cloud provides command distribution; queries remain local unless you provide tenant-specific query bus segments with a distributed implementation.
 
 == Dynamic tenants configuration
 
@@ -20,6 +48,8 @@ public TenantConnectPredicate tenantFilterPredicate() {
 ----
 
 Note that in this case you need to remove axon.axonserver.contexts property.
+
+When Axon Server is disabled, dynamic tenant discovery requires a custom `TenantProvider`.
 
 == Route message to specific tenant
 
@@ -257,19 +287,19 @@ The following tenant segment factories are available:
 
 ==== TenantCommandSegmentFactory
 
-This factory is responsible for creating a `CommandBus` instance for each tenant. By default, it creates an `AxonServerCommandBus` that uses a `SimpleCommandBus` as the local segment and connects to Axon Server. You can override this factory to provide a custom implementation of the `CommandBus` for specific tenants.
+This factory is responsible for creating a `CommandBus` instance for each tenant. With Axon Server enabled, it creates an `AxonServerCommandBus` that uses a `SimpleCommandBus` as the local segment and connects to Axon Server. With Axon Server disabled, it creates a tenant-local `SimpleCommandBus`. You can override this factory to provide a custom implementation of the `CommandBus` for specific tenants.
 
 ==== TenantQuerySegmentFactory
 
-This factory creates a `QueryBus` instance for each tenant. By default, it creates an `AxonServerQueryBus` that uses a `SimpleQueryBus` as lhe local segment and connects to Axon Server. You can override this factory to provide a custom implementation of the `QueryBus` for specific tenants.
+This factory creates a `QueryBus` instance for each tenant. With Axon Server enabled, it creates an `AxonServerQueryBus` that uses a `SimpleQueryBus` as lhe local segment and connects to Axon Server. With Axon Server disabled, it creates a tenant-local `SimpleQueryBus`. You can override this factory to provide a custom implementation of the `QueryBus` for specific tenants.
 
 ==== TenantEventSegmentFactory
 
-This factory is responsible for creating an `EventStore` instance for each tenant. By default, it creates an `AxonServerEventStore` that connects to Axon Server. You can override this factory to provide a custom implementation of the `EventStore` for specific tenants.
+This factory is responsible for creating an `EventStore` instance for each tenant. With Axon Server enabled, it creates an `AxonServerEventStore` that connects to Axon Server. With Axon Server disabled and Jakarta JPA available, it creates a tenant-local `EmbeddedEventStore` backed by `org.axonframework.eventsourcing.eventstore.jpa.JpaEventStorageEngine`. If JPA is not available, it can fall back to an existing `EventStorageEngine` bean. You can override this factory to provide a custom implementation of the `EventStore` for specific tenants.
 
 ==== TenantEventSchedulerSegmentFactory
 
-This factory creates an `EventScheduler` instance for each tenant. By default, it creates an `AxonServerEventScheduler` that connects to Axon Server. You can override this factory to provide a custom implementation of the `EventScheduler` for specific tenants.
+This factory creates an `EventScheduler` instance for each tenant. With Axon Server enabled, it creates an `AxonServerEventScheduler` that connects to Axon Server. With Axon Server disabled, no default event scheduler segment factory is provided. You can define this factory to provide a custom implementation of the `EventScheduler` for specific tenants.
 
 ==== TenantEventProcessorControlSegmentFactory
 

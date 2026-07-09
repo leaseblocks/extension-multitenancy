@@ -44,6 +44,7 @@ import org.axonframework.queryhandling.QueryUpdateEmitter;
 import org.axonframework.springboot.util.ConditionalOnMissingQualifiedBean;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -129,6 +130,7 @@ public class MultiTenancyAutoConfiguration {
 
     @Bean
     @Primary
+    @ConditionalOnBean(TenantEventSegmentFactory.class)
     public MultiTenantEventStore multiTenantEventStore(TenantEventSegmentFactory tenantEventSegmentFactory,
                                                        TargetTenantResolver<?> targetTenantResolver,
                                                        TenantProvider tenantProvider) {
@@ -144,6 +146,7 @@ public class MultiTenancyAutoConfiguration {
 
     @Bean
     @Primary
+    @ConditionalOnBean(TenantEventSchedulerSegmentFactory.class)
     public MultiTenantEventScheduler multiTenantEventScheduler(
             TenantEventSchedulerSegmentFactory tenantEventSchedulerSegmentFactory,
             TargetTenantResolver<?> targetTenantResolver,
