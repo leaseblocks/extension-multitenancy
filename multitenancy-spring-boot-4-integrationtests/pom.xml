@@ -19,17 +19,17 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.4</version>
+        <version>4.0.7</version>
         <relativePath />
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>axon-multitenancy-spring-boot-3-integrationtests</artifactId>
+    <artifactId>axon-multitenancy-spring-boot-4-integrationtests</artifactId>
     <groupId>org.axonframework.extensions.multitenancy</groupId>
 
-    <name>Axon Framework Multi-Tenancy Extension - Spring Boot 3 Integration Tests</name>
+    <name>Axon Framework Multi-Tenancy Extension - Spring Boot 4 Integration Tests</name>
     <description>
-        Module used to test the integration with Spring Boot 3
+        Module used to test the integration with Spring Boot 4
     </description>
     <version>4.13.0-SNAPSHOT</version>
 
@@ -37,7 +37,7 @@
 
     <properties>
         <axon.version>4.13.2</axon.version>
-        <testcoontainers.version>1.21.3</testcoontainers.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
 
         <jar-plugin.version>3.4.2</jar-plugin.version>
         <jacoco-plugin.version>0.8.13</jacoco-plugin.version>
@@ -114,7 +114,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
-                <version>${testcoontainers.version}</version>
+                <version>${testcontainers.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
