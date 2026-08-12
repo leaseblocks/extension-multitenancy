@@ -77,7 +77,11 @@ class MultiTenancyAutoConfigurationTest {
     void multiTenancyAutoConfiguration() {
         contextRunner.withConfiguration(AutoConfigurations.of(MultiTenancyAxonServerAutoConfiguration.class))
                      .withConfiguration(AutoConfigurations.of(MultiTenancyAutoConfiguration.class))
-                     .withPropertyValues("axon.axonserver.contexts=tenant-1,tenant-2")
+                     .withPropertyValues(
+                             "axon.axonserver.enabled=true",
+                             "axon.multi-tenancy.enabled=true",
+                             "axon.axonserver.contexts=tenant-1,tenant-2"
+                     )
                      .run(context -> {
                          assertThat(context).getBean("tenantFilterPredicate")
                                             .isInstanceOf(TenantConnectPredicate.class);
@@ -113,6 +117,7 @@ class MultiTenancyAutoConfigurationTest {
                      .withBean(EventStorageEngine.class, () -> mock(EventStorageEngine.class))
                      .withPropertyValues(
                              "axon.axonserver.enabled=false",
+                             "axon.multi-tenancy.enabled=true",
                              "axon.multi-tenancy.tenants=tenant-1,tenant-2"
                      )
                      .run(context -> {
@@ -146,6 +151,7 @@ class MultiTenancyAutoConfigurationTest {
                      .withBean(PersistenceExceptionResolver.class, () -> mock(PersistenceExceptionResolver.class))
                      .withPropertyValues(
                              "axon.axonserver.enabled=false",
+                             "axon.multi-tenancy.enabled=true",
                              "axon.multi-tenancy.tenants=tenant-1,tenant-2"
                      )
                      .run(context -> {
@@ -172,6 +178,7 @@ class MultiTenancyAutoConfigurationTest {
                      .withConfiguration(AutoConfigurations.of(MultiTenancyAutoConfiguration.class))
                      .withPropertyValues(
                              "axon.axonserver.enabled=false",
+                             "axon.multi-tenancy.enabled=true",
                              "axon.multi-tenancy.tenants=tenant-1,tenant-2"
                      )
                      .run(context -> {
@@ -187,6 +194,7 @@ class MultiTenancyAutoConfigurationTest {
                      .withConfiguration(AutoConfigurations.of(MultiTenancyAutoConfiguration.class))
                      .withPropertyValues(
                              "axon.axonserver.enabled=false",
+                             "axon.multi-tenancy.enabled=true",
                              "axon.multi-tenancy.tenants=tenant-1,tenant-2"
                      )
                      .run(context -> {
@@ -235,7 +243,11 @@ class MultiTenancyAutoConfigurationTest {
 
                 .withConfiguration(AutoConfigurations.of(MultiTenancyAxonServerAutoConfiguration.class))
                 .withConfiguration(AutoConfigurations.of(MultiTenantPersistentStreamAutoConfiguration.class))
-                .withPropertyValues("axon.axonserver.contexts=tenant-1,tenant-2")
+                .withPropertyValues(
+                        "axon.axonserver.enabled=true",
+                        "axon.multi-tenancy.enabled=true",
+                        "axon.axonserver.contexts=tenant-1,tenant-2"
+                )
                 .run(context -> {
                     PersistentStreamMessageSourceFactory persistentStreamMessageSourceFactory =
                             context.getBean("persistentStreamMessageSourceFactory", PersistentStreamMessageSourceFactory.class);
@@ -254,6 +266,8 @@ class MultiTenancyAutoConfigurationTest {
         contextRunner.withBean(TargetTenantResolver.class, () -> userResolver)
                      .withPropertyValues(
                              "axon.multi-tenancy.use-metadata-helper:false",
+                             "axon.axonserver.enabled=true",
+                             "axon.multi-tenancy.enabled=true",
                              "axon.axonserver.contexts=tenant-1,tenant-2"
                      )
                      .withConfiguration(AutoConfigurations.of(MultiTenancyAxonServerAutoConfiguration.class))

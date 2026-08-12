@@ -49,10 +49,43 @@ class TenantWrappedTransactionManagerTest {
         Transaction transactionMock = mock(Transaction.class);
         when(delegate.startTransaction()).thenReturn(transactionMock);
 
-        testSubject.startTransaction();
+        Transaction transaction = testSubject.startTransaction();
+
+        assertEquals(tenant1, TenantWrappedTransactionManager.getCurrentTenant());
+
+        transaction.commit();
 
         assertNull(TenantWrappedTransactionManager.getCurrentTenant());
         verify(delegate, times(1)).startTransaction();
+        verify(transactionMock, times(1)).commit();
+    }
+
+    @Test
+    void startTransactionRestoresContextOnRollback() {
+        TenantDescriptor outerTenant = TenantDescriptor.tenantWithId("outer");
+        Transaction transactionMock = mock(Transaction.class);
+        when(delegate.startTransaction()).thenReturn(transactionMock);
+
+        TenantContext.runWithTenant(outerTenant, () -> {
+            Transaction transaction = testSubject.startTransaction();
+            assertEquals(tenant1, TenantContext.currentTenant());
+
+            transaction.rollback();
+
+            assertEquals(outerTenant, TenantContext.currentTenant());
+        });
+
+        assertNull(TenantContext.currentTenant());
+        verify(transactionMock, times(1)).rollback();
+    }
+
+    @Test
+    void startTransactionRestoresContextWhenStartingFails() {
+        when(delegate.startTransaction()).thenThrow(new IllegalStateException("failure"));
+
+        assertThrows(IllegalStateException.class, testSubject::startTransaction);
+
+        assertNull(TenantContext.currentTenant());
     }
 
     @Test
@@ -67,16 +100,50 @@ class TenantWrappedTransactionManagerTest {
     }
 
     @Test
+    void executeInTransactionRestoresContextWhenTaskFails() {
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(0).run();
+            return null;
+        }).when(delegate).executeInTransaction(any());
+
+        assertThrows(IllegalStateException.class,
+                     () -> testSubject.executeInTransaction(() -> {
+                         throw new IllegalStateException("failure");
+                     }));
+
+        assertNull(TenantContext.currentTenant());
+    }
+
+    @Test
     void fetchInTransaction() {
-        when(delegate.fetchInTransaction(any())).thenReturn("result");
+        when(delegate.fetchInTransaction(any())).thenAnswer(invocation -> invocation.<Supplier<?>>getArgument(0).get());
 
         Supplier<String> supplier = () -> {
             assertEquals(tenant1, TenantWrappedTransactionManager.getCurrentTenant());
             return "string";
         };
-        testSubject.fetchInTransaction(supplier);
+        assertEquals("string", testSubject.fetchInTransaction(supplier));
 
         assertNull(TenantWrappedTransactionManager.getCurrentTenant());
         verify(delegate, times(1)).fetchInTransaction(supplier);
+    }
+
+
+    @Test
+    void nestedContextRestoresOuterTenant() {
+        TenantDescriptor outerTenant = TenantDescriptor.tenantWithId("outer");
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(0).run();
+            return null;
+        }).when(delegate).executeInTransaction(any());
+
+        TenantContext.runWithTenant(outerTenant, () -> {
+            testSubject.executeInTransaction(
+                    () -> assertEquals(tenant1, TenantContext.currentTenant())
+            );
+            assertEquals(outerTenant, TenantContext.currentTenant());
+        });
+
+        assertNull(TenantContext.currentTenant());
     }
 }

@@ -22,6 +22,7 @@ import org.axonframework.extensions.multitenancy.components.TargetTenantResolver
 import org.axonframework.extensions.multitenancy.components.TenantConnectPredicate;
 import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
 import org.axonframework.extensions.multitenancy.components.TenantProvider;
+import org.axonframework.extensions.multitenancy.components.NoSuchTenantException;
 import org.axonframework.extensions.multitenancy.components.commandhandeling.MultiTenantCommandBus;
 import org.axonframework.extensions.multitenancy.components.commandhandeling.TenantCommandSegmentFactory;
 import org.axonframework.extensions.multitenancy.components.deadletterqueue.MultiTenantDeadLetterQueue;
@@ -64,7 +65,7 @@ import static org.axonframework.extensions.multitenancy.autoconfig.TenantConfigu
  * @since 4.6.0
  */
 @AutoConfiguration
-@ConditionalOnProperty(value = "axon.multi-tenancy.enabled", matchIfMissing = true)
+@ConditionalOnProperty(value = "axon.multi-tenancy.enabled", havingValue = "true")
 @AutoConfigureAfter(MultiTenancyAxonServerAutoConfiguration.class)
 public class MultiTenancyAutoConfiguration {
 
@@ -215,11 +216,19 @@ public class MultiTenancyAutoConfiguration {
     @Bean
     @ConditionalOnProperty(name = "axon.multi-tenancy.use-metadata-helper", matchIfMissing = true)
     public TargetTenantResolver<Message<?>> targetTenantResolver() {
-        return (message, tenants) ->
-                TenantDescriptor.tenantWithId(
-                        (String) message.getMetaData()
-                                        .getOrDefault(TENANT_CORRELATION_KEY, "unknownTenant")
+        return (message, tenants) -> {
+            Object tenantId = message.getMetaData().get(TENANT_CORRELATION_KEY);
+            if (!(tenantId instanceof String) || ((String) tenantId).trim().isEmpty()) {
+                throw new NoSuchTenantException(
+                        "Message is missing required tenant metadata '" + TENANT_CORRELATION_KEY + "'"
                 );
+            }
+            TenantDescriptor tenant = TenantDescriptor.tenantWithId((String) tenantId);
+            if (!tenants.contains(tenant)) {
+                throw new NoSuchTenantException("Message references an unregistered tenant");
+            }
+            return tenant;
+        };
     }
 
     @Bean

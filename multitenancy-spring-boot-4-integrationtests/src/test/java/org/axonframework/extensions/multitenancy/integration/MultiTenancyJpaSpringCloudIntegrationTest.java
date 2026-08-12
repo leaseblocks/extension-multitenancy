@@ -25,6 +25,8 @@ import org.axonframework.eventsourcing.eventstore.jpa.JpaEventStorageEngine;
 import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
 import org.axonframework.extensions.multitenancy.components.commandhandeling.MultiTenantCommandBus;
 import org.axonframework.extensions.multitenancy.components.eventstore.MultiTenantEventStore;
+import org.axonframework.extensions.multitenancy.autoconfig.MultiTenantDataSourceManager;
+import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -42,6 +44,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+
+import javax.sql.DataSource;
 
 import static org.axonframework.extensions.multitenancy.autoconfig.TenantConfiguration.TENANT_CORRELATION_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,6 +57,7 @@ class MultiTenancyJpaSpringCloudIntegrationTest {
 
     private static final String TENANT_ID = "tenant-1";
     private static final TenantDescriptor TENANT = TenantDescriptor.tenantWithId(TENANT_ID);
+    private static final TenantDescriptor SECOND_TENANT = TenantDescriptor.tenantWithId("tenant-2");
 
     private ApplicationContextRunner testApplicationContext;
 
@@ -63,7 +69,8 @@ class MultiTenancyJpaSpringCloudIntegrationTest {
                         "axon.axonserver.enabled=false",
                         "axon.distributed.enabled=true",
                         "axon.distributed.spring-cloud.enable-accept-all-commands=true",
-                        "axon.multi-tenancy.tenants=" + TENANT_ID,
+                        "axon.multi-tenancy.enabled=true",
+                        "axon.multi-tenancy.tenants=" + TENANT_ID + "," + SECOND_TENANT.tenantId(),
                         "spring.application.name=multi-tenancy-jpa-spring-cloud-test",
                         "spring.autoconfigure.exclude=" +
                                 "org.springframework.cloud.client.discovery.simple.SimpleDiscoveryClientAutoConfiguration",
@@ -80,8 +87,17 @@ class MultiTenancyJpaSpringCloudIntegrationTest {
             MultiTenantCommandBus commandBus = assertInstanceOf(
                     MultiTenantCommandBus.class, context.getBean(CommandBus.class)
             );
-            assertEquals(1, commandBus.tenantSegments().size());
+            assertEquals(2, commandBus.tenantSegments().size());
             assertInstanceOf(DistributedCommandBus.class, commandBus.tenantSegments().get(TENANT));
+            assertInstanceOf(DistributedCommandBus.class, commandBus.tenantSegments().get(SECOND_TENANT));
+            assertEquals(1, context.getBeansOfType(MultiTenantDataSourceManager.class).size());
+
+            @SuppressWarnings("unchecked")
+            Function<TenantDescriptor, DataSource> resolver = (Function<TenantDescriptor, DataSource>) context
+                    .getBean("tenantDataSourceResolver");
+            JdbcDataSource firstDataSource = (JdbcDataSource) resolver.apply(TENANT);
+            JdbcDataSource secondDataSource = (JdbcDataSource) resolver.apply(SECOND_TENANT);
+            assertTrue(!firstDataSource.getURL().equals(secondDataSource.getURL()));
 
             MultiTenantEventStore eventStore = assertInstanceOf(
                     MultiTenantEventStore.class, context.getBean(EventStore.class)
@@ -138,6 +154,17 @@ class MultiTenancyJpaSpringCloudIntegrationTest {
                 public List<String> getServices() {
                     return Collections.singletonList(localServiceInstance.getServiceId());
                 }
+            };
+        }
+
+        @Bean(name = "tenantDataSourceResolver")
+        public Function<TenantDescriptor, DataSource> tenantDataSourceResolver() {
+            return tenant -> {
+                JdbcDataSource dataSource = new JdbcDataSource();
+                dataSource.setURL(
+                        "jdbc:h2:mem:multi-tenancy-jpa-spring-cloud-" + tenant.tenantId() + ";DB_CLOSE_DELAY=-1"
+                );
+                return dataSource;
             };
         }
     }

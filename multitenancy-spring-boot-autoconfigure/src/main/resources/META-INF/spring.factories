@@ -1,4 +1,5 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  org.axonframework.extensions.multitenancy.autoconfig.MultiTenantDataSourceManager,\
   org.axonframework.extensions.multitenancy.autoconfig.MultiTenantPersistentStreamAutoConfiguration,\
   org.axonframework.extensions.multitenancy.autoconfig.MultiTenancyJpaEventStoreAutoConfiguration,\
   org.axonframework.extensions.multitenancy.autoconfig.MultiTenancySpringCloudAutoConfiguration,\

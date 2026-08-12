@@ -44,7 +44,7 @@ import org.springframework.context.annotation.Bean;
  */
 @AutoConfiguration
 @ConditionalOnExpression(
-        "'${axon.axonserver.enabled:true}' == 'false' and '${axon.multi-tenancy.enabled:true}' != 'false'"
+        "'${axon.axonserver.enabled:true}' == 'false' and '${axon.multi-tenancy.enabled:false}' == 'true'"
 )
 @ConditionalOnClass(name = {
         "jakarta.persistence.EntityManager",

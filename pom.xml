@@ -19,7 +19,7 @@
 
     <groupId>org.axonframework.extensions.multitenancy</groupId>
     <artifactId>axon-multitenancy-parent</artifactId>
-    <version>4.13.0-SNAPSHOT</version>
+    <version>4.13.0-leaseblocks-SNAPSHOT</version>
     <modules>
         <module>multitenancy</module>
         <module>multitenancy-spring-boot-autoconfigure</module>
@@ -456,10 +456,23 @@
         </profile>
     </profiles>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>nexus-maven</id>
+            <name>LeaseBlocks snapshots</name>
+            <url>https://nexus.tools.dip-software.com/repository/leaseblocks-snapshots/</url>
+        </snapshotRepository>
+        <repository>
+            <id>nexus-maven</id>
+            <name>LeaseBlocks releases</name>
+            <url>https://nexus.tools.dip-software.com/repository/bpls-romania-releases/</url>
+        </repository>
+    </distributionManagement>
+
     <scm>
-        <connection>scm:git:git://github.com/AxonFramework/extension-multitenancy.git</connection>
-        <developerConnection>scm:git:git@github.com:AxonFramework/extension-multitenancy.git</developerConnection>
-        <url>https://github.com/AxonFramework/extension-multitenancy</url>
+        <connection>scm:git:git://github.com/leaseblocks/extension-multitenancy.git</connection>
+        <developerConnection>scm:git:git@github.com:leaseblocks/extension-multitenancy.git</developerConnection>
+        <url>https://github.com/leaseblocks/extension-multitenancy</url>
         <tag>HEAD</tag>
     </scm>
 

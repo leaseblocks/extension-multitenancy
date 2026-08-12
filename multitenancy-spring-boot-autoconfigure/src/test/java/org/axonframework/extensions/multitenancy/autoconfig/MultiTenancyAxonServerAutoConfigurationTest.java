@@ -72,7 +72,11 @@ class MultiTenancyAxonServerAutoConfigurationTest {
     void axonServerAutoConfiguration() {
         contextRunner.withConfiguration(AutoConfigurations.of(MultiTenancyAxonServerAutoConfiguration.class))
                      .withConfiguration(AutoConfigurations.of(MultiTenancyAutoConfiguration.class))
-                     .withPropertyValues("axon.axonserver.contexts=tenant-1,tenant-2")
+                     .withPropertyValues(
+                             "axon.axonserver.enabled=true",
+                             "axon.multi-tenancy.enabled=true",
+                             "axon.axonserver.contexts=tenant-1,tenant-2"
+                     )
                      .run(context -> {
                          assertThat(context).getBean("tenantEventSchedulerSegmentFactory")
                                             .isInstanceOf(TenantEventSchedulerSegmentFactory.class);
@@ -98,7 +102,11 @@ class MultiTenancyAxonServerAutoConfigurationTest {
         contextRunner.withConfiguration(AutoConfigurations.of(MultiTenancyAxonServerAutoConfiguration.class))
                 .withConfiguration(AutoConfigurations.of(MultiTenancyAutoConfiguration.class))
                 .withUserConfiguration(SharedCommandBus.class)
-                .withPropertyValues("axon.axonserver.contexts=tenant-1,tenant-2")
+                .withPropertyValues(
+                        "axon.axonserver.enabled=true",
+                        "axon.multi-tenancy.enabled=true",
+                        "axon.axonserver.contexts=tenant-1,tenant-2"
+                )
                 .run(context -> {
                     TenantCommandSegmentFactory factory = context.getBean(TenantCommandSegmentFactory.class);
                     SimpleCommandBus sharedCommandBus = context.getBean("sharedSimpleCommandBus", SimpleCommandBus.class);

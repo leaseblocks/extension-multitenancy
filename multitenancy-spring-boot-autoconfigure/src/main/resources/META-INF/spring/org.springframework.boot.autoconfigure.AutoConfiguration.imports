@@ -1,3 +1,4 @@
+org.axonframework.extensions.multitenancy.autoconfig.MultiTenantDataSourceManager
 org.axonframework.extensions.multitenancy.autoconfig.MultiTenancyJpaEventStoreAutoConfiguration
 org.axonframework.extensions.multitenancy.autoconfig.MultiTenancySpringCloudAutoConfiguration
 org.axonframework.extensions.multitenancy.autoconfig.MultiTenancyLocalSegmentAutoConfiguration

@@ -63,7 +63,7 @@ import org.springframework.web.client.RestTemplate;
  */
 @AutoConfiguration
 @ConditionalOnExpression(
-        "'${axon.axonserver.enabled:true}' == 'false' and '${axon.multi-tenancy.enabled:true}' != 'false' " +
+        "'${axon.axonserver.enabled:true}' == 'false' and '${axon.multi-tenancy.enabled:false}' == 'true' " +
                 "and '${axon.distributed.enabled:false}' == 'true'"
 )
 @ConditionalOnClass(name = {

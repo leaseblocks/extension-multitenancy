@@ -20,6 +20,7 @@ import org.axonframework.common.transaction.Transaction;
 import org.axonframework.common.transaction.TransactionManager;
 import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -34,8 +35,6 @@ public class TenantWrappedTransactionManager implements TransactionManager {
 
     private final TransactionManager delegate;
     private final TenantDescriptor tenantDescriptor;
-    private static final ThreadLocal<TenantDescriptor> threadLocal = new ThreadLocal<>();
-
     /**
      * Creates a new {@link TenantWrappedTransactionManager} with the given {@code tenantDescriptor}.
      *
@@ -61,25 +60,47 @@ public class TenantWrappedTransactionManager implements TransactionManager {
 
     @Override
     public Transaction startTransaction() {
-        threadLocal.set(tenantDescriptor);
-        Transaction transaction = delegate.startTransaction();
-        threadLocal.remove();
-        return transaction;
+        TenantDescriptor previousTenant = TenantContext.setCurrentTenant(tenantDescriptor);
+        Transaction transaction;
+        try {
+            transaction = delegate.startTransaction();
+        } catch (RuntimeException | Error exception) {
+            TenantContext.restoreCurrentTenant(previousTenant);
+            throw exception;
+        }
+        AtomicBoolean completed = new AtomicBoolean();
+        return new Transaction() {
+            @Override
+            public void commit() {
+                complete(transaction::commit);
+            }
+
+            @Override
+            public void rollback() {
+                complete(transaction::rollback);
+            }
+
+            private void complete(Runnable completion) {
+                if (!completed.compareAndSet(false, true)) {
+                    return;
+                }
+                try {
+                    completion.run();
+                } finally {
+                    TenantContext.restoreCurrentTenant(previousTenant);
+                }
+            }
+        };
     }
 
     @Override
     public void executeInTransaction(Runnable task) {
-        threadLocal.set(tenantDescriptor);
-        delegate.executeInTransaction(task);
-        threadLocal.remove();
+        TenantContext.runWithTenant(tenantDescriptor, () -> delegate.executeInTransaction(task));
     }
 
     @Override
     public <T> T fetchInTransaction(Supplier<T> supplier) {
-        threadLocal.set(tenantDescriptor);
-        T t = delegate.fetchInTransaction(supplier);
-        threadLocal.remove();
-        return t;
+        return TenantContext.fetchWithTenant(tenantDescriptor, () -> delegate.fetchInTransaction(supplier));
     }
 
     /**
@@ -88,6 +109,6 @@ public class TenantWrappedTransactionManager implements TransactionManager {
      * @return The {@link TenantDescriptor tenant} that's currently active within this thread.
      */
     public static TenantDescriptor getCurrentTenant() {
-        return threadLocal.get();
+        return TenantContext.currentTenant();
     }
 }

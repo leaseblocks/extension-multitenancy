@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
  */
 @AutoConfiguration
 @ConditionalOnExpression(
-        "'${axon.axonserver.enabled:true}' == 'false' and '${axon.multi-tenancy.enabled:true}' != 'false'"
+        "'${axon.axonserver.enabled:true}' == 'false' and '${axon.multi-tenancy.enabled:false}' == 'true'"
 )
 @AutoConfigureBefore(MultiTenancyAutoConfiguration.class)
 public class MultiTenancyLocalSegmentAutoConfiguration {
@@ -87,6 +87,11 @@ public class MultiTenancyLocalSegmentAutoConfiguration {
                         .map(TenantDescriptor::tenantWithId)
                         .filter(tenantConnectPredicate)
                         .collect(Collectors.toList());
+        if (tenants.isEmpty()) {
+            throw new IllegalStateException(
+                    "Axon multi-tenancy is enabled but no tenants are configured in '" + TENANTS_PROPERTY + "'"
+            );
+        }
         return new StaticTenantProvider(tenants);
     }
 

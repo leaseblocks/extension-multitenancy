@@ -34,7 +34,7 @@ import org.springframework.context.annotation.Bean;
  * @since 4.10.0
  */
 @AutoConfiguration
-@ConditionalOnProperty(value = {"axon.axonserver.enabled", "axon.multi-tenancy.enabled"}, matchIfMissing = true)
+@ConditionalOnProperty(value = {"axon.axonserver.enabled", "axon.multi-tenancy.enabled"}, havingValue = "true")
 @AutoConfigureBefore(AxonServerAutoConfiguration.class)
 public class MultiTenantPersistentStreamAutoConfiguration {
 
