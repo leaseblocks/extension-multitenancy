@@ -19,6 +19,7 @@ package org.axonframework.extensions.multitenancy.autoconfig;
 import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
 import org.axonframework.extensions.multitenancy.components.TenantProvider;
 import org.axonframework.extensions.multitenancy.components.TargetTenantResolver;
+import org.axonframework.extensions.multitenancy.TenantContext;
 import org.axonframework.springboot.autoconfig.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -31,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 /**
@@ -78,6 +80,23 @@ class MultiTenantDataSourceManagerTest {
                     verify(tenantProvider).subscribe(multiTenantDataSourceManager);
                     multiTenantDataSourceManager.registerTenant(TenantDescriptor.tenantWithId("test"));
                     assertThat(DataSourceResolverConfiguration.dataSourceResolved.get()).isTrue();
+
+                    DataSource routingDataSource = context.getBean(DataSource.class);
+                    assertThatThrownBy(routingDataSource::getConnection)
+                            .isInstanceOf(IllegalStateException.class)
+                            .hasMessageContaining("Cannot determine target DataSource");
+
+                    Connection connection = TenantContext.fetchWithTenant(
+                            TenantDescriptor.tenantWithId("test"),
+                            () -> {
+                                try {
+                                    return routingDataSource.getConnection();
+                                } catch (Exception exception) {
+                                    throw new IllegalStateException(exception);
+                                }
+                            }
+                    );
+                    assertThat(connection).isNotNull();
                 });
     }
 

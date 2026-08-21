@@ -30,6 +30,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.core.Ordered;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 
 import javax.sql.DataSource;
@@ -56,7 +59,8 @@ import java.util.function.Function;
 })
 @ConditionalOnProperty(value = "axon.multi-tenancy.enabled", havingValue = "true")
 @ConditionalOnBean(name = "tenantDataSourceResolver")
-public class MultiTenantDataSourceManager implements MultiTenantAwareComponent {
+public class MultiTenantDataSourceManager
+        implements MultiTenantAwareComponent, ApplicationListener<ContextRefreshedEvent>, Ordered {
 
     private static final Logger logger = LoggerFactory.getLogger(MultiTenantDataSourceManager.class);
 
@@ -122,6 +126,26 @@ public class MultiTenantDataSourceManager implements MultiTenantAwareComponent {
 
     AbstractRoutingDataSource getMultiTenantDataSource() {
         return multiTenantDataSource;
+    }
+
+    /**
+     * The first tenant is used only while Spring initializes JPA. Once the application context is ready, remove that
+     * bootstrap fallback so persistence work without an Axon unit of work or explicit {@link TenantContext} fails
+     * closed instead of silently using an arbitrary organization's database.
+     *
+     * @param event the completed application-context refresh
+     */
+    @Override
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        if (multiTenantDataSource != null) {
+            multiTenantDataSource.setDefaultTargetDataSource(null);
+            multiTenantDataSource.afterPropertiesSet();
+        }
+    }
+
+    @Override
+    public int getOrder() {
+        return Ordered.HIGHEST_PRECEDENCE;
     }
 
     /**
