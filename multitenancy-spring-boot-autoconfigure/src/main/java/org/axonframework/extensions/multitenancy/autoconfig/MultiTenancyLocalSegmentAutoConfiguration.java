@@ -28,7 +28,7 @@ import org.axonframework.eventsourcing.eventstore.EventStore;
 import org.axonframework.extensions.multitenancy.TenantWrappedTransactionManager;
 import org.axonframework.extensions.multitenancy.components.TenantConnectPredicate;
 import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
-import org.axonframework.extensions.multitenancy.components.TenantProvider;
+import org.axonframework.extensions.multitenancy.components.TenantRegistry;
 import org.axonframework.extensions.multitenancy.components.commandhandeling.TenantCommandSegmentFactory;
 import org.axonframework.extensions.multitenancy.components.eventstore.TenantEventSegmentFactory;
 import org.axonframework.extensions.multitenancy.components.queryhandeling.MultiTenantQueryUpdateEmitter;
@@ -74,7 +74,7 @@ public class MultiTenancyLocalSegmentAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public TenantProvider tenantProvider(Environment environment,
+    public TenantRegistry tenantProvider(Environment environment,
                                          TenantConnectPredicate tenantConnectPredicate) {
         String configuredTenants = environment.getProperty(
                 TENANTS_PROPERTY,

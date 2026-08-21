@@ -164,6 +164,7 @@ public class MultiTenantDataSourceManager implements MultiTenantAwareComponent {
             logger.debug("[d] Tenant '{}' added.", tenant);
         } catch (SQLException t) {
             logger.error("[d] Could not add tenant '{}'", tenant, t);
+            throw new IllegalStateException("Could not validate the data source for tenant " + tenant.tenantId(), t);
         }
     }
 

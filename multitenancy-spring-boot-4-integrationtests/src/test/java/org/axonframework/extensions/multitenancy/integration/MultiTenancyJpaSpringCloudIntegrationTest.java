@@ -17,15 +17,18 @@
 package org.axonframework.extensions.multitenancy.integration;
 
 import org.axonframework.commandhandling.CommandBus;
+import org.axonframework.commandhandling.GenericCommandMessage;
 import org.axonframework.commandhandling.distributed.DistributedCommandBus;
 import org.axonframework.eventhandling.GenericDomainEventMessage;
 import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore;
 import org.axonframework.eventsourcing.eventstore.EventStore;
 import org.axonframework.eventsourcing.eventstore.jpa.JpaEventStorageEngine;
 import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
+import org.axonframework.extensions.multitenancy.components.TenantRegistry;
 import org.axonframework.extensions.multitenancy.components.commandhandeling.MultiTenantCommandBus;
 import org.axonframework.extensions.multitenancy.components.eventstore.MultiTenantEventStore;
 import org.axonframework.extensions.multitenancy.autoconfig.MultiTenantDataSourceManager;
+import org.axonframework.extensions.multitenancy.autoconfig.TenantCapabilityDiscoveryModeRegistry;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,6 +47,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import javax.sql.DataSource;
@@ -68,9 +73,8 @@ class MultiTenancyJpaSpringCloudIntegrationTest {
                 .withPropertyValues(
                         "axon.axonserver.enabled=false",
                         "axon.distributed.enabled=true",
-                        "axon.distributed.spring-cloud.enable-accept-all-commands=true",
                         "axon.multi-tenancy.enabled=true",
-                        "axon.multi-tenancy.tenants=" + TENANT_ID + "," + SECOND_TENANT.tenantId(),
+                        "axon.multi-tenancy.tenants=" + TENANT_ID,
                         "spring.application.name=multi-tenancy-jpa-spring-cloud-test",
                         "spring.autoconfigure.exclude=" +
                                 "org.springframework.cloud.client.discovery.simple.SimpleDiscoveryClientAutoConfiguration",
@@ -82,15 +86,37 @@ class MultiTenancyJpaSpringCloudIntegrationTest {
     }
 
     @Test
-    void runsWithoutAxonServerUsingJpaEventStoreAndSpringCloudCommandSegments() {
+    void runsWithoutAxonServerUsingJpaEventStoreAndSpringCloudCommandSegments() throws Exception {
         testApplicationContext.run(context -> {
             MultiTenantCommandBus commandBus = assertInstanceOf(
                     MultiTenantCommandBus.class, context.getBean(CommandBus.class)
             );
+            TenantRegistry tenantRegistry = context.getBean(TenantRegistry.class);
+            assertTrue(tenantRegistry.registerTenant(SECOND_TENANT));
             assertEquals(2, commandBus.tenantSegments().size());
             assertInstanceOf(DistributedCommandBus.class, commandBus.tenantSegments().get(TENANT));
             assertInstanceOf(DistributedCommandBus.class, commandBus.tenantSegments().get(SECOND_TENANT));
+            assertInstanceOf(
+                    org.axonframework.extensions.springcloud.commandhandling.mode.RestCapabilityDiscoveryMode.class,
+                    context.getBean(TenantCapabilityDiscoveryModeRegistry.class).discoveryMode(SECOND_TENANT)
+            );
             assertEquals(1, context.getBeansOfType(MultiTenantDataSourceManager.class).size());
+
+            commandBus.subscribe(String.class.getName(), command -> "handled-" + command.getPayload());
+            CompletableFuture<Object> commandResult = new CompletableFuture<>();
+            commandBus.dispatch(
+                    GenericCommandMessage.asCommandMessage("runtime")
+                                         .andMetaData(Map.of(TENANT_CORRELATION_KEY,
+                                                             SECOND_TENANT.tenantId())),
+                    (command, result) -> {
+                        if (result.isExceptional()) {
+                            commandResult.completeExceptionally(result.exceptionResult());
+                        } else {
+                            commandResult.complete(result.getPayload());
+                        }
+                    }
+            );
+            assertEquals("handled-runtime", commandResult.get(5, TimeUnit.SECONDS));
 
             @SuppressWarnings("unchecked")
             Function<TenantDescriptor, DataSource> resolver = (Function<TenantDescriptor, DataSource>) context

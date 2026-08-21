@@ -20,13 +20,14 @@ import org.axonframework.commandhandling.CommandBusSpanFactory;
 import org.axonframework.commandhandling.DuplicateCommandHandlerResolver;
 import org.axonframework.commandhandling.SimpleCommandBus;
 import org.axonframework.commandhandling.distributed.AnnotationRoutingStrategy;
-import org.axonframework.commandhandling.distributed.CommandRouter;
 import org.axonframework.commandhandling.distributed.DistributedCommandBus;
 import org.axonframework.commandhandling.distributed.RoutingStrategy;
 import org.axonframework.commandhandling.distributed.UnresolvedRoutingKeyPolicy;
 import org.axonframework.common.transaction.TransactionManager;
 import org.axonframework.config.Configuration;
 import org.axonframework.extensions.multitenancy.TenantWrappedTransactionManager;
+import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
+import org.axonframework.extensions.multitenancy.components.TenantProvider;
 import org.axonframework.extensions.multitenancy.components.commandhandeling.TenantCommandSegmentFactory;
 import org.axonframework.extensions.springcloud.commandhandling.SpringCloudCommandRouter;
 import org.axonframework.extensions.springcloud.commandhandling.SpringHttpCommandBusConnector;
@@ -52,6 +53,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.client.serviceregistry.Registration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.web.client.RestTemplate;
 
@@ -76,6 +78,7 @@ import org.springframework.web.client.RestTemplate;
         "org.axonframework.extensions.springcloud.autoconfig.SpringCloudAutoConfiguration",
         "org.axonframework.extensions.multitenancy.autoconfig.MultiTenancyLocalSegmentAutoConfiguration"
 })
+@Import(TenantMemberCapabilitiesController.class)
 public class MultiTenancySpringCloudAutoConfiguration {
 
     private static final String SPRING_CLOUD_AUTO_CONFIGURATION =
@@ -128,6 +131,15 @@ public class MultiTenancySpringCloudAutoConfiguration {
     }
 
     @Bean
+    public TenantCapabilityDiscoveryModeRegistry tenantCapabilityDiscoveryModeRegistry(
+            TenantProvider tenantProvider
+    ) {
+        TenantCapabilityDiscoveryModeRegistry registry = new TenantCapabilityDiscoveryModeRegistry();
+        tenantProvider.subscribe(registry);
+        return registry;
+    }
+
+    @Bean
     @ConditionalOnBean({DiscoveryClient.class, Registration.class})
     @ConditionalOnMissingBean
     public TenantCommandSegmentFactory tenantSpringCloudCommandSegmentFactory(
@@ -140,7 +152,8 @@ public class MultiTenancySpringCloudAutoConfiguration {
             @Qualifier("messageSerializer") Serializer messageSerializer,
             RestTemplate restTemplate,
             SpanFactory spanFactory,
-            Environment environment
+            Environment environment,
+            TenantCapabilityDiscoveryModeRegistry discoveryModeRegistry
     ) {
         return tenant -> {
             CommandBusSpanFactory commandBusSpanFactory =
@@ -161,8 +174,9 @@ public class MultiTenancySpringCloudAutoConfiguration {
             );
 
             CapabilityDiscoveryMode capabilityDiscoveryMode =
-                    capabilityDiscoveryMode(messageSerializer, restTemplate, environment);
-            CommandRouter commandRouter =
+                    capabilityDiscoveryMode(messageSerializer, restTemplate, environment, tenant,
+                                            discoveryModeRegistry);
+            SpringCloudCommandRouter commandRouter =
                     SpringCloudCommandRouter.builder()
                                             .discoveryClient(discoveryClient)
                                             .localServiceInstance(localServiceInstance)
@@ -173,6 +187,7 @@ public class MultiTenancySpringCloudAutoConfiguration {
                                                     environment.getProperty(CONTEXT_ROOT_PROPERTY)
                                             )
                                             .build();
+            discoveryModeRegistry.registerCommandRouter(tenant, commandRouter);
             SpringHttpCommandBusConnector connector =
                     SpringHttpCommandBusConnector.builder()
                                                  .localCommandBus(localSegment)
@@ -197,13 +212,18 @@ public class MultiTenancySpringCloudAutoConfiguration {
 
     private CapabilityDiscoveryMode capabilityDiscoveryMode(Serializer serializer,
                                                             RestTemplate restTemplate,
-                                                            Environment environment) {
-        CapabilityDiscoveryMode discoveryMode =
+                                                            Environment environment,
+                                                            TenantDescriptor tenant,
+                                                            TenantCapabilityDiscoveryModeRegistry discoveryModeRegistry) {
+        RestCapabilityDiscoveryMode tenantDiscoveryMode =
                 RestCapabilityDiscoveryMode.builder()
                                            .serializer(serializer)
                                            .restTemplate(restTemplate)
-                                           .messageCapabilitiesEndpoint(restModeUrl(environment))
+                                           .messageCapabilitiesEndpoint(restModeUrl(environment) + "/" +
+                                                                                tenant.tenantId())
                                            .build();
+        discoveryModeRegistry.registerDiscoveryMode(tenant, tenantDiscoveryMode);
+        CapabilityDiscoveryMode discoveryMode = tenantDiscoveryMode;
         if (environment.getProperty(ACCEPT_ALL_COMMANDS_PROPERTY, Boolean.class, false)) {
             discoveryMode = AcceptAllCommandsDiscoveryMode.builder()
                                                           .delegate(discoveryMode)
