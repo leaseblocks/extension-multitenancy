@@ -19,7 +19,7 @@
 
     <groupId>org.axonframework.extensions.multitenancy</groupId>
     <artifactId>axon-multitenancy-parent</artifactId>
-    <version>4.13.0-leaseblocks-SNAPSHOT</version>
+    <version>4.13.0</version>
     <modules>
         <module>multitenancy</module>
         <module>multitenancy-spring-boot-autoconfigure</module>
@@ -68,11 +68,11 @@
         <projectreactor.version>3.7.8</projectreactor.version>
         <findbugs-jsr305.version>3.0.2</findbugs-jsr305.version>
         <!-- Build / Plugin -->
-        <central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
         <jacoco-maven.version>0.8.13</jacoco-maven.version>
         <maven-assembly.version>3.7.1</maven-assembly.version>
         <maven-clean.version>3.5.0</maven-clean.version>
         <maven-compiler.version>3.14.0</maven-compiler.version>
+        <maven-deploy-plugin.version>3.1.2</maven-deploy-plugin.version>
         <maven-enforcer.version>3.6.1</maven-enforcer.version>
         <maven-gpg.version>3.2.8</maven-gpg.version>
         <maven-install.version>3.1.4</maven-install.version>
@@ -252,12 +252,10 @@
             </plugin>
             <!-- deploy -->
             <plugin>
-                <groupId>org.sonatype.central</groupId>
-                <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>${central-publishing-maven-plugin.version}</version>
-                <extensions>true</extensions>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>${maven-deploy-plugin.version}</version>
                 <configuration>
-                    <publishingServerId>central</publishingServerId>
+                    <deployAtEnd>true</deployAtEnd>
                 </configuration>
             </plugin>
             <plugin>
@@ -457,15 +455,10 @@
     </profiles>
 
     <distributionManagement>
-        <snapshotRepository>
-            <id>nexus-maven</id>
-            <name>LeaseBlocks snapshots</name>
-            <url>https://nexus.tools.dip-software.com/repository/leaseblocks-snapshots/</url>
-        </snapshotRepository>
         <repository>
             <id>nexus-maven</id>
-            <name>LeaseBlocks releases</name>
-            <url>https://nexus.tools.dip-software.com/repository/bpls-romania-releases/</url>
+            <name>LeaseBlocks internal Maven repository</name>
+            <url>https://nexus.tools.dip-software.com/repository/dip-internal/</url>
         </repository>
     </distributionManagement>
 

@@ -25,7 +25,7 @@
 
     <groupId>org.axonframework.extensions.multitenancy</groupId>
     <artifactId>axon-multitenancy-spring-boot-starter</artifactId>
-        <version>4.13.0-leaseblocks-SNAPSHOT</version>
+        <version>4.13.0</version>
 
     <name>Spring Boot Starter module for Axon Framework Multi-Tenancy Extension</name>
     <description>Spring Boot Starter module for the Multi-Tenancy Extension of Axon Framework</description>
@@ -47,10 +47,9 @@
     </issueManagement>
 
     <properties>
-        <central-publishing-maven-plugin.version>0.8.0</central-publishing-maven-plugin.version>
         <maven-clean.version>3.5.0</maven-clean.version>
         <maven-compiler.version>3.14.0</maven-compiler.version>
-        <maven-deploy.version>3.1.1</maven-deploy.version>
+        <maven-deploy-plugin.version>3.1.2</maven-deploy-plugin.version>
         <maven-gpg.version>3.2.8</maven-gpg.version>
         <maven-install.version>3.1.4</maven-install.version>
         <maven-javadoc.version>3.11.2</maven-javadoc.version>
@@ -109,12 +108,10 @@
             </plugin>
             <!-- deploy -->
             <plugin>
-                <groupId>org.sonatype.central</groupId>
-                <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>${central-publishing-maven-plugin.version}</version>
-                <extensions>true</extensions>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>${maven-deploy-plugin.version}</version>
                 <configuration>
-                    <publishingServerId>central</publishingServerId>
+                    <deployAtEnd>true</deployAtEnd>
                 </configuration>
             </plugin>
             <plugin>
@@ -126,6 +123,14 @@
             </plugin>
         </plugins>
     </build>
+
+    <distributionManagement>
+        <repository>
+            <id>nexus-maven</id>
+            <name>LeaseBlocks internal Maven repository</name>
+            <url>https://nexus.tools.dip-software.com/repository/dip-internal/</url>
+        </repository>
+    </distributionManagement>
 
     <profiles>
         <profile>

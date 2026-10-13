@@ -17,6 +17,17 @@ On JDK 17+, the `java17-modules` profile automatically includes the Spring Boot 
 
 Integration tests use an Axon Server Testcontainer and require Docker.
 
+## Deploy
+
+Add your Nexus credentials to a `nexus-maven` server entry in your Maven `settings.xml`. For GitHub Actions, set the `NEXUS_USERNAME` and `NEXUS_PASSWORD` repository secrets. The Actions runner needs network access to the internal Nexus repository. Then run:
+
+```sh
+./mvnw clean deploy
+```
+
+The `dip-internal` repository accepts releases only. This checkout uses version `4.13.0`.
+The deployment job uses JDK 17 and runs the full reactor. It publishes artifacts only after all tests pass. The integration tests need Docker.
+
 ## Modules
 
 - [multitenancy](multitenancy/): core extension.

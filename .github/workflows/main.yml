@@ -17,13 +17,10 @@ jobs:
         include:
           - java-version: 8
             sonar-enabled: false
-            deploy-enabled: true
           - java-version: 11
             sonar-enabled: false
-            deploy-enabled: false
           - java-version: 17
             sonar-enabled: true
-            deploy-enabled: false
 
     steps:
       - name: Checkout code
@@ -35,9 +32,6 @@ jobs:
           distribution: 'zulu'
           java-version: ${{ matrix.java-version }}
           cache: "maven"
-          server-id: central
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
 
       - name: Regular Build
         if: ${{ !matrix.sonar-enabled }}
@@ -60,15 +54,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Deploy to Sonatype
-        if: success() && matrix.deploy-enabled
-        run: |
-          ./mvnw -B -U -Dstyle.color=always deploy -DskipTests=true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAVEN_USERNAME: ${{ secrets.SONATYPE_TOKEN_ID }}
-          MAVEN_PASSWORD: ${{ secrets.SONATYPE_TOKEN_PASS }}
-
       - name: Notify success to Slack
         if: success()
         env:
@@ -88,3 +73,29 @@ jobs:
           channel_id: CAGSEC92A
           status: FAILED
           color: danger
+
+  deploy:
+    name: Deploy to DIP Nexus
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4.7.1
+        with:
+          distribution: 'zulu'
+          java-version: 17
+          cache: "maven"
+          server-id: nexus-maven
+          server-username: NEXUS_USERNAME
+          server-password: NEXUS_PASSWORD
+
+      - name: Deploy to DIP Nexus
+        run: ./mvnw -B -ntp clean deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
