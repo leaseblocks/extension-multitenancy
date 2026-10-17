@@ -42,6 +42,7 @@ import org.axonframework.messaging.Message;
 import org.axonframework.messaging.correlation.CorrelationDataProvider;
 import org.axonframework.queryhandling.QueryMessage;
 import org.axonframework.queryhandling.QueryUpdateEmitter;
+import org.axonframework.springboot.autoconfig.EventProcessingAutoConfiguration;
 import org.axonframework.springboot.util.ConditionalOnMissingQualifiedBean;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -64,7 +65,7 @@ import static org.axonframework.extensions.multitenancy.autoconfig.TenantConfigu
  * @author Stefan Dragisic
  * @since 4.6.0
  */
-@AutoConfiguration
+@AutoConfiguration(before = EventProcessingAutoConfiguration.class)
 @ConditionalOnProperty(value = "axon.multi-tenancy.enabled", havingValue = "true")
 @AutoConfigureAfter(MultiTenancyAxonServerAutoConfiguration.class)
 public class MultiTenancyAutoConfiguration {
