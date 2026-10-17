@@ -46,7 +46,6 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -140,7 +139,6 @@ public class MultiTenancySpringCloudAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnBean({DiscoveryClient.class, Registration.class})
     @ConditionalOnMissingBean
     public TenantCommandSegmentFactory tenantSpringCloudCommandSegmentFactory(
             TransactionManager transactionManager,
