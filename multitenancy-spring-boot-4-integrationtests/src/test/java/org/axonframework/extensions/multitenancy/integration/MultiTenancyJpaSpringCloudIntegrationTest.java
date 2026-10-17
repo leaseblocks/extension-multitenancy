@@ -29,10 +29,14 @@ import org.axonframework.extensions.multitenancy.components.commandhandeling.Mul
 import org.axonframework.extensions.multitenancy.components.eventstore.MultiTenantEventStore;
 import org.axonframework.extensions.multitenancy.autoconfig.MultiTenantDataSourceManager;
 import org.axonframework.extensions.multitenancy.autoconfig.TenantCapabilityDiscoveryModeRegistry;
+import org.axonframework.extensions.multitenancy.autoconfig.TenantMemberCapabilitiesController;
+import org.axonframework.extensions.multitenancy.autoconfig.MultiTenancySpringCloudAutoConfiguration;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.cloud.client.DefaultServiceInstance;
 import org.springframework.cloud.client.ServiceInstance;
@@ -43,6 +47,8 @@ import org.springframework.context.annotation.EnableMBeanExport;
 import org.springframework.jmx.support.RegistrationPolicy;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Collections;
 import java.util.List;
@@ -57,6 +63,9 @@ import static org.axonframework.extensions.multitenancy.autoconfig.TenantConfigu
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 class MultiTenancyJpaSpringCloudIntegrationTest {
 
@@ -146,8 +155,27 @@ class MultiTenancyJpaSpringCloudIntegrationTest {
         });
     }
 
+    @Test
+    void exposesCapabilitiesForConfiguredAndNewlyRegisteredTenantCommandSegments() {
+        testApplicationContext.run(context -> {
+            MockMvc mvc = MockMvcBuilders.standaloneSetup(context.getBean(TenantMemberCapabilitiesController.class))
+                                         .addPlaceholderValue("axon.distributed.spring-cloud.rest-mode-url",
+                                                              "/member-capabilities")
+                                         .build();
+            mvc.perform(get("/member-capabilities/" + TENANT_ID))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.loadFactor").value(100));
+
+            assertTrue(context.getBean(TenantRegistry.class).registerTenant(SECOND_TENANT));
+            mvc.perform(get("/member-capabilities/" + SECOND_TENANT.tenantId()))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.loadFactor").value(100));
+        });
+    }
+
     @ContextConfiguration
     @EnableAutoConfiguration
+    @ImportAutoConfiguration(DiscoveryAutoConfiguration.class)
     @EnableMBeanExport(registration = RegistrationPolicy.IGNORE_EXISTING)
     public static class JpaSpringCloudContext {
 
@@ -159,6 +187,21 @@ class MultiTenancyJpaSpringCloudIntegrationTest {
                     8080
             );
         }
+
+        @Bean(name = "tenantDataSourceResolver")
+        public Function<TenantDescriptor, DataSource> tenantDataSourceResolver() {
+            return tenant -> {
+                JdbcDataSource dataSource = new JdbcDataSource();
+                dataSource.setURL(
+                        "jdbc:h2:mem:multi-tenancy-jpa-spring-cloud-" + tenant.tenantId() + ";DB_CLOSE_DELAY=-1"
+                );
+                return dataSource;
+            };
+        }
+    }
+
+    @AutoConfiguration(after = MultiTenancySpringCloudAutoConfiguration.class)
+    static class DiscoveryAutoConfiguration {
 
         @Bean
         public DiscoveryClient discoveryClient(Registration localServiceInstance) {
@@ -180,17 +223,6 @@ class MultiTenancyJpaSpringCloudIntegrationTest {
                 public List<String> getServices() {
                     return Collections.singletonList(localServiceInstance.getServiceId());
                 }
-            };
-        }
-
-        @Bean(name = "tenantDataSourceResolver")
-        public Function<TenantDescriptor, DataSource> tenantDataSourceResolver() {
-            return tenant -> {
-                JdbcDataSource dataSource = new JdbcDataSource();
-                dataSource.setURL(
-                        "jdbc:h2:mem:multi-tenancy-jpa-spring-cloud-" + tenant.tenantId() + ";DB_CLOSE_DELAY=-1"
-                );
-                return dataSource;
             };
         }
     }
