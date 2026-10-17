@@ -39,7 +39,7 @@ public class TenantMemberCapabilitiesController {
     }
 
     @GetMapping("/{tenantId}")
-    public SerializedMemberCapabilities getLocalMemberCapabilities(@PathVariable String tenantId) {
+    public SerializedMemberCapabilities getLocalMemberCapabilities(@PathVariable("tenantId") String tenantId) {
         return discoveryModeRegistry.discoveryMode(TenantDescriptor.tenantWithId(tenantId))
                                     .getLocalMemberCapabilities();
     }
