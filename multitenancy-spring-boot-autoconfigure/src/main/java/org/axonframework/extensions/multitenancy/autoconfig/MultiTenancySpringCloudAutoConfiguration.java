@@ -38,12 +38,7 @@ import org.axonframework.extensions.springcloud.commandhandling.mode.RestCapabil
 import org.axonframework.messaging.interceptors.CorrelationDataInterceptor;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.tracing.SpanFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.beans.factory.support.BeanDefinitionRegistry;
-import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -80,9 +75,6 @@ import org.springframework.web.client.RestTemplate;
 @Import(TenantMemberCapabilitiesController.class)
 public class MultiTenancySpringCloudAutoConfiguration {
 
-    private static final String SPRING_CLOUD_AUTO_CONFIGURATION =
-            "org.axonframework.extensions.springcloud.autoconfig.SpringCloudAutoConfiguration";
-    private static final String DISTRIBUTED_COMMAND_BUS_BEAN = "distributedCommandBus";
     private static final String LOAD_FACTOR_PROPERTY = "axon.distributed.load-factor";
     private static final String REST_MODE_URL_PROPERTY = "axon.distributed.spring-cloud.rest-mode-url";
     private static final String REST_MODE_URL_CAMEL_PROPERTY = "axon.distributed.spring-cloud.restModeUrl";
@@ -92,28 +84,6 @@ public class MultiTenancySpringCloudAutoConfiguration {
             "axon.distributed.spring-cloud.enable-accept-all-commands";
     private static final String IGNORE_LISTING_PROPERTY =
             "axon.distributed.spring-cloud.enable-ignore-listing";
-
-    @Bean
-    public static BeanDefinitionRegistryPostProcessor springCloudDistributedCommandBusSuppressor() {
-        return new BeanDefinitionRegistryPostProcessor() {
-            @Override
-            public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
-                if (!registry.containsBeanDefinition(DISTRIBUTED_COMMAND_BUS_BEAN)) {
-                    return;
-                }
-                BeanDefinition beanDefinition = registry.getBeanDefinition(DISTRIBUTED_COMMAND_BUS_BEAN);
-                if (SPRING_CLOUD_AUTO_CONFIGURATION.equals(beanDefinition.getFactoryBeanName())
-                        && DISTRIBUTED_COMMAND_BUS_BEAN.equals(beanDefinition.getFactoryMethodName())) {
-                    registry.removeBeanDefinition(DISTRIBUTED_COMMAND_BUS_BEAN);
-                }
-            }
-
-            @Override
-            public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
-                // No-op.
-            }
-        };
-    }
 
     @Bean
     @ConditionalOnMissingBean
