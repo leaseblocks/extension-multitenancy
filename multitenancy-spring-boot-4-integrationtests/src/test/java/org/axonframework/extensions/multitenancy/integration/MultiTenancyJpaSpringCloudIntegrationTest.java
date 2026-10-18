@@ -16,6 +16,7 @@
 
 package org.axonframework.extensions.multitenancy.integration;
 
+import com.example.ReportingOrderingAutoConfiguration;
 import org.axonframework.commandhandling.CommandBus;
 import org.axonframework.commandhandling.GenericCommandMessage;
 import org.axonframework.commandhandling.distributed.DistributedCommandBus;
@@ -173,9 +174,17 @@ class MultiTenancyJpaSpringCloudIntegrationTest {
         });
     }
 
+    @Test
+    void inactiveMultiTenancyKeepsTheGlobalDistributedCommandBus() {
+        testApplicationContext.withPropertyValues("axon.multi-tenancy.enabled=false").run(context -> {
+            assertInstanceOf(DistributedCommandBus.class, context.getBean(CommandBus.class));
+            assertTrue(context.getBeansOfType(MultiTenantCommandBus.class).isEmpty());
+        });
+    }
+
     @ContextConfiguration
     @EnableAutoConfiguration
-    @ImportAutoConfiguration(DiscoveryAutoConfiguration.class)
+    @ImportAutoConfiguration({DiscoveryAutoConfiguration.class, ReportingOrderingAutoConfiguration.class})
     @EnableMBeanExport(registration = RegistrationPolicy.IGNORE_EXISTING)
     public static class JpaSpringCloudContext {
 
