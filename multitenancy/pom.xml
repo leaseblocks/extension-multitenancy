@@ -18,8 +18,8 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <artifactId>axon-multitenancy-parent</artifactId>
-        <groupId>org.axonframework.extensions.multitenancy</groupId>
-    <version>4.13.0</version>
+        <groupId>com.dipsoftware.leaseblocks.axon</groupId>
+    <version>4.13.0-lb.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>axon-multitenancy</artifactId>

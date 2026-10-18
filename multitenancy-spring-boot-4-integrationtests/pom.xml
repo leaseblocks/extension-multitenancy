@@ -25,19 +25,19 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>axon-multitenancy-spring-boot-4-integrationtests</artifactId>
-    <groupId>org.axonframework.extensions.multitenancy</groupId>
+    <groupId>com.dipsoftware.leaseblocks.axon</groupId>
 
     <name>Axon Framework Multi-Tenancy Extension - Spring Boot 4 Integration Tests</name>
     <description>
         Module used to test the integration with Spring Boot 4
     </description>
-    <version>4.13.0</version>
+    <version>4.13.0-lb.1-SNAPSHOT</version>
 
     <packaging>jar</packaging>
 
     <properties>
         <axon.version>4.13.2</axon.version>
-        <extensions-springcloud.version>4.13.0</extensions-springcloud.version>
+        <extensions-springcloud.version>4.13.0-lb.1-SNAPSHOT</extensions-springcloud.version>
         <spring-cloud.version>5.0.2</spring-cloud.version>
         <testcontainers.version>1.21.4</testcontainers.version>
 
@@ -64,12 +64,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.axonframework.extensions.multitenancy</groupId>
+            <groupId>com.dipsoftware.leaseblocks.axon</groupId>
             <artifactId>axon-multitenancy-spring-boot-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.axonframework.extensions.springcloud</groupId>
+            <groupId>com.dipsoftware.leaseblocks.axon</groupId>
             <artifactId>axon-springcloud-spring-boot-starter</artifactId>
             <version>${extensions-springcloud.version}</version>
             <scope>test</scope>

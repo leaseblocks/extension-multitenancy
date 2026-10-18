@@ -17,9 +17,9 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-    <groupId>org.axonframework.extensions.multitenancy</groupId>
+    <groupId>com.dipsoftware.leaseblocks.axon</groupId>
     <artifactId>axon-multitenancy-parent</artifactId>
-    <version>4.13.0</version>
+    <version>4.13.0-lb.1-SNAPSHOT</version>
     <modules>
         <module>multitenancy</module>
         <module>multitenancy-spring-boot-autoconfigure</module>
