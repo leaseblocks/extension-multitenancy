@@ -33,6 +33,11 @@
     <packaging>jar</packaging>
 
     <dependencies>
+        <dependency>
+            <groupId>com.dipsoftware.leaseblocks.platform</groupId>
+            <artifactId>tenancy-core</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
         <!-- Axon -->
         <dependency>
             <groupId>org.axonframework</groupId>

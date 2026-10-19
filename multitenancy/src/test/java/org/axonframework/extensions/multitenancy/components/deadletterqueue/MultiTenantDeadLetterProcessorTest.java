@@ -50,7 +50,7 @@ class MultiTenantDeadLetterProcessorTest {
     void forTenantMustBeCalled() {
         assertThrows(IllegalStateException.class, () -> testSubject.process(t -> true));
 
-        testSubject.forTenant(TenantDescriptor.tenantWithId("tenantId"))
+        testSubject.forTenant(TenantDescriptor.tenantWithId("tenant-id"))
                    .processAny();
 
         verify(delegate).processAny();
@@ -59,13 +59,14 @@ class MultiTenantDeadLetterProcessorTest {
     @Test
     void processHasTenantAttached() {
         Predicate<DeadLetter<? extends EventMessage<?>>> predicate = t -> {
-            assertEquals(TenantDescriptor.tenantWithId("tenantId"),
+            assertEquals(TenantDescriptor.tenantWithId("tenant-id"),
                          TenantWrappedTransactionManager.getCurrentTenant());
             return true;
         };
-        testSubject.forTenant(TenantDescriptor.tenantWithId("tenantId"))
-                   .process(predicate);
+        when(delegate.process(predicate)).thenAnswer(invocation -> predicate.test(null));
+        assertTrue(testSubject.forTenant(TenantDescriptor.tenantWithId("tenant-id")).process(predicate));
 
         verify(delegate).process(predicate);
+        assertNull(TenantWrappedTransactionManager.getCurrentTenant());
     }
 }

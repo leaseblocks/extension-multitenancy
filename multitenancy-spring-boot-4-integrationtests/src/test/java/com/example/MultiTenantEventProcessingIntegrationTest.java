@@ -25,7 +25,8 @@ import org.axonframework.eventhandling.GenericEventMessage;
 import org.axonframework.eventsourcing.eventstore.EmbeddedEventStore;
 import org.axonframework.eventsourcing.eventstore.EventStore;
 import org.axonframework.eventsourcing.eventstore.inmemory.InMemoryEventStorageEngine;
-import org.axonframework.extensions.multitenancy.TenantContext;
+import com.dipsoftware.leaseblocks.tenancy.TenantContext;
+import com.dipsoftware.leaseblocks.tenancy.TenantId;
 import org.axonframework.extensions.multitenancy.autoconfig.MultiTenancyAutoConfiguration;
 import org.axonframework.extensions.multitenancy.autoconfig.MultiTenancyLocalSegmentAutoConfiguration;
 import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
@@ -96,7 +97,7 @@ class MultiTenantEventProcessingIntegrationTest {
                     eventStore.publish(new GenericEventMessage<>("second", Map.of(TENANT_CORRELATION_KEY, "tenant-2")));
 
                     assertThat(eventHandler.handled).containsExactly("tenant-1:first", "tenant-2:second");
-                    assertThat(TenantContext.currentTenant()).isNull();
+                    assertThat(TenantContext.current().orElse(null)).isNull();
                 });
     }
 
@@ -116,7 +117,7 @@ class MultiTenantEventProcessingIntegrationTest {
 
         @EventHandler
         public void on(String event) {
-            handled.add(TenantContext.currentTenant().tenantId() + ":" + event);
+            handled.add(TenantContext.current().orElseThrow().value() + ":" + event);
         }
     }
 }

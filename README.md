@@ -43,3 +43,5 @@ See the [local documentation](docs/README.md) and [upstream reference guide](htt
 Upstream support: [AxonIQ forum](https://discuss.axoniq.io/) and [issue tracker](https://github.com/AxonFramework/extension-multitenancy/issues).
 
 Licensed under [Apache 2.0](LICENSE).
+
+The LeaseBlocks fork requires Java 21 at build time and runtime because it consumes the shared tenancy-core module. Existing module source and target levels are preserved.

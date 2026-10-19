@@ -15,6 +15,9 @@
  */
 package org.axonframework.extensions.multitenancy;
 
+import com.dipsoftware.leaseblocks.tenancy.TenantContext;
+import com.dipsoftware.leaseblocks.tenancy.TenantId;
+
 import org.axonframework.common.transaction.NoTransactionManager;
 import org.axonframework.common.transaction.Transaction;
 import org.axonframework.common.transaction.TransactionManager;
@@ -60,12 +63,12 @@ public class TenantWrappedTransactionManager implements TransactionManager {
 
     @Override
     public Transaction startTransaction() {
-        TenantDescriptor previousTenant = TenantContext.setCurrentTenant(tenantDescriptor);
+        TenantContext.Scope scope = TenantContext.open(new TenantId(tenantDescriptor.tenantId()));
         Transaction transaction;
         try {
             transaction = delegate.startTransaction();
         } catch (RuntimeException | Error exception) {
-            TenantContext.restoreCurrentTenant(previousTenant);
+            scope.close();
             throw exception;
         }
         AtomicBoolean completed = new AtomicBoolean();
@@ -87,7 +90,7 @@ public class TenantWrappedTransactionManager implements TransactionManager {
                 try {
                     completion.run();
                 } finally {
-                    TenantContext.restoreCurrentTenant(previousTenant);
+                    scope.close();
                 }
             }
         };
@@ -95,12 +98,12 @@ public class TenantWrappedTransactionManager implements TransactionManager {
 
     @Override
     public void executeInTransaction(Runnable task) {
-        TenantContext.runWithTenant(tenantDescriptor, () -> delegate.executeInTransaction(task));
+        TenantContext.run(new TenantId(tenantDescriptor.tenantId()), () -> delegate.executeInTransaction(task));
     }
 
     @Override
     public <T> T fetchInTransaction(Supplier<T> supplier) {
-        return TenantContext.fetchWithTenant(tenantDescriptor, () -> delegate.fetchInTransaction(supplier));
+        return TenantContext.fetch(new TenantId(tenantDescriptor.tenantId()), () -> delegate.fetchInTransaction(supplier));
     }
 
     /**
@@ -109,6 +112,6 @@ public class TenantWrappedTransactionManager implements TransactionManager {
      * @return The {@link TenantDescriptor tenant} that's currently active within this thread.
      */
     public static TenantDescriptor getCurrentTenant() {
-        return TenantContext.currentTenant();
+        return TenantContext.current().map(id -> TenantDescriptor.tenantWithId(id.value())).orElse(null);
     }
 }

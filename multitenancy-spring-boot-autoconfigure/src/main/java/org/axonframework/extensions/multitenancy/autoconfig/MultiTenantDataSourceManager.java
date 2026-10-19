@@ -16,7 +16,7 @@
 package org.axonframework.extensions.multitenancy.autoconfig;
 
 import org.axonframework.common.Registration;
-import org.axonframework.extensions.multitenancy.TenantContext;
+import com.dipsoftware.leaseblocks.tenancy.TenantContext;
 import org.axonframework.extensions.multitenancy.components.*;
 import org.axonframework.messaging.Message;
 import org.axonframework.messaging.unitofwork.CurrentUnitOfWork;
@@ -102,7 +102,7 @@ public class MultiTenantDataSourceManager
             @Override
             protected Object determineCurrentLookupKey() {
                 if (!CurrentUnitOfWork.isStarted()) {
-                    return TenantContext.currentTenant();
+                    return TenantContext.current().map(id -> TenantDescriptor.tenantWithId(id.value())).orElse(null);
                 }
                 Message<?> message = CurrentUnitOfWork.get().getMessage();
                 return tenantResolver.resolveTenant(message, tenantDataSources.keySet());

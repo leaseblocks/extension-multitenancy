@@ -16,6 +16,9 @@
 
 package org.axonframework.extensions.multitenancy;
 
+import com.dipsoftware.leaseblocks.tenancy.TenantContext;
+import com.dipsoftware.leaseblocks.tenancy.TenantId;
+
 import org.axonframework.common.transaction.Transaction;
 import org.axonframework.common.transaction.TransactionManager;
 import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
@@ -66,16 +69,16 @@ class TenantWrappedTransactionManagerTest {
         Transaction transactionMock = mock(Transaction.class);
         when(delegate.startTransaction()).thenReturn(transactionMock);
 
-        TenantContext.runWithTenant(outerTenant, () -> {
+        TenantContext.run(new TenantId(outerTenant.tenantId()), () -> {
             Transaction transaction = testSubject.startTransaction();
-            assertEquals(tenant1, TenantContext.currentTenant());
+            assertEquals(new TenantId(tenant1.tenantId()), TenantContext.current().orElse(null));
 
             transaction.rollback();
 
-            assertEquals(outerTenant, TenantContext.currentTenant());
+            assertEquals(new TenantId(outerTenant.tenantId()), TenantContext.current().orElse(null));
         });
 
-        assertNull(TenantContext.currentTenant());
+        assertNull(TenantContext.current().orElse(null));
         verify(transactionMock, times(1)).rollback();
     }
 
@@ -85,7 +88,7 @@ class TenantWrappedTransactionManagerTest {
 
         assertThrows(IllegalStateException.class, testSubject::startTransaction);
 
-        assertNull(TenantContext.currentTenant());
+        assertNull(TenantContext.current().orElse(null));
     }
 
     @Test
@@ -111,7 +114,7 @@ class TenantWrappedTransactionManagerTest {
                          throw new IllegalStateException("failure");
                      }));
 
-        assertNull(TenantContext.currentTenant());
+        assertNull(TenantContext.current().orElse(null));
     }
 
     @Test
@@ -137,13 +140,13 @@ class TenantWrappedTransactionManagerTest {
             return null;
         }).when(delegate).executeInTransaction(any());
 
-        TenantContext.runWithTenant(outerTenant, () -> {
+        TenantContext.run(new TenantId(outerTenant.tenantId()), () -> {
             testSubject.executeInTransaction(
-                    () -> assertEquals(tenant1, TenantContext.currentTenant())
+                    () -> assertEquals(new TenantId(tenant1.tenantId()), TenantContext.current().orElse(null))
             );
-            assertEquals(outerTenant, TenantContext.currentTenant());
+            assertEquals(new TenantId(outerTenant.tenantId()), TenantContext.current().orElse(null));
         });
 
-        assertNull(TenantContext.currentTenant());
+        assertNull(TenantContext.current().orElse(null));
     }
 }

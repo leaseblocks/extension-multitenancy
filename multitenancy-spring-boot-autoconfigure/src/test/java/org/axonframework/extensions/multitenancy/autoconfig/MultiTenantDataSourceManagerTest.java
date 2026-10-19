@@ -19,7 +19,8 @@ package org.axonframework.extensions.multitenancy.autoconfig;
 import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
 import org.axonframework.extensions.multitenancy.components.TenantProvider;
 import org.axonframework.extensions.multitenancy.components.TargetTenantResolver;
-import org.axonframework.extensions.multitenancy.TenantContext;
+import com.dipsoftware.leaseblocks.tenancy.TenantContext;
+import com.dipsoftware.leaseblocks.tenancy.TenantId;
 import org.axonframework.springboot.autoconfig.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -86,8 +87,7 @@ class MultiTenantDataSourceManagerTest {
                             .isInstanceOf(IllegalStateException.class)
                             .hasMessageContaining("Cannot determine target DataSource");
 
-                    Connection connection = TenantContext.fetchWithTenant(
-                            TenantDescriptor.tenantWithId("test"),
+                    Connection connection = TenantContext.fetch(new TenantId("test"),
                             () -> {
                                 try {
                                     return routingDataSource.getConnection();
