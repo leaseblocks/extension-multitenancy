@@ -20,6 +20,7 @@ import org.axonframework.commandhandling.CommandBusSpanFactory;
 import org.axonframework.commandhandling.DuplicateCommandHandlerResolver;
 import org.axonframework.commandhandling.SimpleCommandBus;
 import org.axonframework.commandhandling.distributed.AnnotationRoutingStrategy;
+import org.axonframework.commandhandling.distributed.CommandBusConnector;
 import org.axonframework.commandhandling.distributed.DistributedCommandBus;
 import org.axonframework.commandhandling.distributed.RoutingStrategy;
 import org.axonframework.commandhandling.distributed.UnresolvedRoutingKeyPolicy;
@@ -27,6 +28,8 @@ import org.axonframework.common.transaction.TransactionManager;
 import org.axonframework.config.Configuration;
 import org.axonframework.extensions.multitenancy.TenantWrappedTransactionManager;
 import org.axonframework.extensions.multitenancy.components.TenantDescriptor;
+import org.axonframework.extensions.multitenancy.components.TargetTenantResolver;
+import org.axonframework.extensions.multitenancy.components.commandhandeling.MultiTenantCommandBus;
 import org.axonframework.extensions.multitenancy.components.TenantProvider;
 import org.axonframework.extensions.multitenancy.components.commandhandeling.TenantCommandSegmentFactory;
 import org.axonframework.extensions.springcloud.commandhandling.SpringCloudCommandRouter;
@@ -39,6 +42,7 @@ import org.axonframework.messaging.interceptors.CorrelationDataInterceptor;
 import org.axonframework.serialization.Serializer;
 import org.axonframework.tracing.SpanFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -106,6 +110,23 @@ public class MultiTenancySpringCloudAutoConfiguration {
         TenantCapabilityDiscoveryModeRegistry registry = new TenantCapabilityDiscoveryModeRegistry();
         tenantProvider.subscribe(registry);
         return registry;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(CommandBusConnector.class)
+    public SpringHttpCommandBusConnector tenantHttpCommandBusConnector(
+            ObjectProvider<MultiTenantCommandBus> commandBus,
+            TargetTenantResolver<?> targetTenantResolver,
+            @Qualifier("messageSerializer") Serializer messageSerializer,
+            RestTemplate restTemplate,
+            SpanFactory spanFactory
+    ) {
+        return SpringHttpCommandBusConnector.builder()
+                                            .localCommandBus(new TenantLocalCommandBus(commandBus, targetTenantResolver))
+                                            .restOperations(restTemplate)
+                                            .serializer(messageSerializer)
+                                            .spanFactory(spanFactory)
+                                            .build();
     }
 
     @Bean
